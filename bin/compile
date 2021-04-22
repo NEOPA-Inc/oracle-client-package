@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+echo "start buildpacks"
+set -e
+
+BP_DIR=$(cd $(dirname ${0:-}); cd ..; pwd)
+BUILD_DIR=$1
+CACHE_DIR=$2
+CLIENT_BUILD_DIR=$BUILD_DIR/.oracle-build
+
+echo "-----> Installing Oracle Client"
+
+mkdir -p $CLIENT_BUILD_DIR
+
+cd $CLIENT_BUILD_DIR
+unzip $BP_DIR/oracle-client/instantclient-basic-linux.x64-19.8.0.0.0dbru.zip
+unzip $BP_DIR/oracle-client/instantclient-sdk-linux.x64-19.8.0.0.0dbru.zip
+mv instantclient{_19_8,}
+cd instantclient
+
+cat <<EOT > $BP_DIR/export
+export LD_LIBRARY_PATH=$CLIENT_BUILD_DIR/instantclient/:$BUILD_DIR/.apt/lib/x86_64-linux-gnu/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+export OCI_LIB_DIR=$CLIENT_BUILD_DIR/instantclient
+export OCI_INC_DIR=$CLIENT_BUILD_DIR/instantclient/sdk/include
+EOT
+
+cat $BP_DIR/export
+
+if [ ! -d "$BUILD_DIR/.profile.d" ]; then
+  mkdir $BUILD_DIR/.profile.d
+fi
+
+cp $BP_DIR/profile/* $BUILD_DIR/.profile.d/
+
+echo "-----> Oracle Client Installed"
